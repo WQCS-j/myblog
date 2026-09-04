@@ -1,0 +1,9 @@
+import bcrypt from 'bcryptjs'
+import jwt from 'jsonwebtoken'
+import { z } from 'zod'
+import { databasePool } from '../config/database.js'
+import { errorResponse, successResponse } from '../utils/response.js'
+const registerSchema = z.object({ username: z.string().min(3).max(30), password: z.string().min(8).max(72), email: z.string().email().optional(), phone: z.string().optional(), agreementAccepted: z.literal(true) })
+export async function registerUser(request, response, next) { try { const input = registerSchema.parse(request.body); const [existing] = await databasePool.query('SELECT id FROM users WHERE username = ? OR email = ? OR phone = ? LIMIT 1', [input.username, input.email || null, input.phone || null]); if (existing.length) return response.status(409).json(errorResponse('用户名或联系方式已被注册')); const passwordHash = await bcrypt.hash(input.password, 12); await databasePool.query('INSERT INTO users (username,email,phone,password_hash,role,status) VALUES (?,?,?,?,?,?)', [input.username,input.email || null,input.phone || null,passwordHash,'user','active']); response.status(201).json(successResponse(null, '注册成功，请登录')) } catch (error) { next(error) } }
+export async function loginUser(request, response, next) { try { const { account, password } = request.body; const [rows] = await databasePool.query('SELECT * FROM users WHERE username = ? OR email = ? OR phone = ? LIMIT 1', [account, account, account]); const user = rows[0]; if (!user || user.status !== 'active' || !(await bcrypt.compare(password, user.password_hash))) return response.status(401).json(errorResponse('账号或密码错误')); const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' }); response.json(successResponse({ token, user: { id: user.id, username: user.username, role: user.role } })) } catch (error) { next(error) } }
+export async function getCurrentUser(request, response) { response.json(successResponse(request.user)) }
