@@ -10,7 +10,7 @@ const technologyTags = ['Vue 3', 'JavaScript', 'Node.js', 'Express', 'MySQL', 'G
 <template>
   <div class="home-page">
     <section class="home-hero" :style="{ backgroundImage: `url(${heroImage})` }">
-      <div class="home-hero-overlay"></div>
+      <div class="home-hero-overlay"></div><span class="hero-butterfly hero-butterfly-one" aria-hidden="true"></span><span class="hero-butterfly hero-butterfly-two" aria-hidden="true"></span>
       <div class="home-hero-content">
         <p class="hero-kicker">COMPUTER SCIENCE STUDENT / PERSONAL BLOG</p>
         <p class="hero-wish">祝你<br /><em>大获全胜</em></p>
@@ -23,4 +23,5 @@ const technologyTags = ['Vue 3', 'JavaScript', 'Node.js', 'Express', 'MySQL', 'G
     <section class="content-grid section-space home-articles"><div class="main-column"><div class="section-heading"><div><p class="eyebrow">TECHNICAL JOURNAL</p><h2>我的技术文章</h2></div><span class="count">00 ARTICLES</span></div><div class="empty-state empty-article-state"><strong>还没有发布文章</strong><span>等我写下第一篇关于代码、课程或项目的记录。</span><RouterLink class="button button-primary" to="/studio">进入作者后台 <ArrowUpRight :size="15" /></RouterLink></div></div><aside class="side-column"><div class="search-box"><Search :size="17" /><input v-model="searchKeyword" placeholder="搜索我的文章..." /></div><div class="side-block"><p class="eyebrow">技术栈 / TECH STACK</p><div class="tag-cloud"><RouterLink v-for="tag in technologyTags" :key="tag" to="/archive"><Hash :size="13" />{{ tag }}</RouterLink></div></div><div class="side-block home-note"><p class="eyebrow">小小记录 / A SMALL NOTE</p><p>保持好奇，保持动手。每个小项目，都是理解世界的一种方式。</p></div></aside></section>
   </div>
 </template>
+
 

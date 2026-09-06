@@ -1,0 +1,4 @@
+import bcrypt from 'bcryptjs'
+import { databasePool } from '../config/database.js'
+import { errorResponse, successResponse } from '../utils/response.js'
+export async function accessPrivateContent(request,response,next){try{const password=String(request.body?.password||'');if(!password)return response.status(400).json(errorResponse('请输入访问密码'));const [rows]=await databasePool.query('SELECT id,title,content,password_hash FROM private_contents ORDER BY id LIMIT 1');if(!rows[0]||!(await bcrypt.compare(password,rows[0].password_hash)))return response.status(403).json(errorResponse('访问密码错误或暂无权限'));await databasePool.query('INSERT INTO login_logs(user_id,ip_address,success) VALUES(?,?,?)',[request.user?.id||null,request.ip,true]);response.json(successResponse({title:rows[0].title,content:rows[0].content},'验证通过'))}catch(error){next(error)}}
