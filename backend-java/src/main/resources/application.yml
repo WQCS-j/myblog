@@ -1,0 +1,26 @@
+server:
+  port: ${PORT:3000}
+  forward-headers-strategy: framework
+
+spring:
+  application:
+    name: myblog-backend-java
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:myblog}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+    username: ${DB_USER:root}
+    password: ${DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jackson:
+    default-property-inclusion: non_null
+
+app:
+  frontend-url: ${FRONTEND_URL:http://localhost:5173}
+  jwt-secret: ${JWT_SECRET:change-this-development-secret-to-a-long-random-value}
+  jwt-expiration-hours: ${JWT_EXPIRATION_HOURS:24}
+  password-reset:
+    ttl-minutes: ${PASSWORD_RESET_TTL_MINUTES:15}
+    debug-expose-code: ${PASSWORD_RESET_DEBUG_EXPOSE_CODE:false}
+
+logging:
+  level:
+    com.myblog: INFO
