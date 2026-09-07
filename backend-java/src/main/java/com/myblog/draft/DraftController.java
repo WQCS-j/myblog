@@ -33,15 +33,35 @@ public class DraftController {
     }
 
     @GetMapping
-    public ApiResponse<List<Map<String, Object>>> list(@AuthenticationPrincipal UserPrincipal principal, @RequestParam(defaultValue = "") String keyword) {
+    public ApiResponse<List<Map<String, Object>>> list(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @RequestParam(defaultValue = "") String keyword,
+            @RequestParam(defaultValue = "updatedAt") String order
+    ) {
         String search = "%" + keyword.trim() + "%";
-        return ApiResponse.ok(jdbcTemplate.queryForList("SELECT id, title, summary, content, author_id, category_id, status, risk_info, created_at, updated_at FROM drafts WHERE author_id = ? AND status = 'draft' AND (title LIKE ? OR summary LIKE ?) ORDER BY updated_at DESC", principal.userId(), search, search).stream().map(this::toDraft).toList());
+        String orderBy = "createdAt".equals(order) ? "created_at" : "updated_at";
+        return ApiResponse.ok(jdbcTemplate.queryForList("SELECT id, title, summary, content, author_id, category_id, status, risk_info, created_at, updated_at FROM drafts WHERE author_id = ? AND status = 'draft' AND (title LIKE ? OR summary LIKE ?) ORDER BY " + orderBy + " DESC", principal.userId(), search, search).stream().map(this::toDraft).toList());
     }
 
     @PostMapping
-    public ApiResponse<Map<String, Object>> create(@AuthenticationPrincipal UserPrincipal principal, @RequestBody DraftRequest request) {
-        jdbcTemplate.update("INSERT INTO drafts (title, summary, content, author_id, category_id, status, risk_info) VALUES (?, ?, ?, ?, ?, 'draft', ?)", value(request.title()), value(request.summary()), value(request.content()), principal.userId(), request.categoryId(), riskInfo(request.riskInfo()));
-        return ApiResponse.ok(findOwned(principal.userId(), lastId()), "草稿已创建");
+    public ResponseEntity<ApiResponse<Map<String, Object>>> create(@AuthenticationPrincipal UserPrincipal principal, @RequestBody DraftRequest request) {
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+        jdbcTemplate.update(connection -> {
+            var statement = connection.prepareStatement(
+                    "INSERT INTO drafts (title, summary, content, author_id, category_id, status, risk_info) VALUES (?, ?, ?, ?, ?, 'draft', ?)",
+                    Statement.RETURN_GENERATED_KEYS
+            );
+            statement.setString(1, value(request.title()));
+            statement.setString(2, value(request.summary()));
+            statement.setString(3, value(request.content()));
+            statement.setLong(4, principal.userId());
+            statement.setObject(5, request.categoryId());
+            statement.setString(6, riskInfo(request.riskInfo()));
+            return statement;
+        }, keyHolder);
+        Number generatedId = keyHolder.getKey();
+        if (generatedId == null) throw new IllegalStateException("草稿创建失败");
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(findOwned(principal.userId(), generatedId.longValue()), "草稿已创建"));
     }
 
     @GetMapping("/{id}")
@@ -56,8 +76,8 @@ public class DraftController {
 
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@AuthenticationPrincipal UserPrincipal principal, @PathVariable long id) {
-        findOwned(principal.userId(), id);
-        jdbcTemplate.update("DELETE FROM drafts WHERE id = ? AND author_id = ?", id, principal.userId());
+        int deletedRows = jdbcTemplate.update("DELETE FROM drafts WHERE id = ? AND author_id = ? AND status = 'draft'", id, principal.userId());
+        if (deletedRows != 1) throw new NoSuchElementException("草稿不存在或无权删除");
         return ApiResponse.ok(null, "草稿已删除");
     }
 
@@ -69,6 +89,9 @@ public class DraftController {
         String content = value(draft.get("content")).trim();
         if (title.length() < 2) throw new IllegalArgumentException("标题至少需要 2 个字");
         if (content.isEmpty()) throw new IllegalArgumentException("正文不能为空");
+
+        int publishedRows = jdbcTemplate.update("UPDATE drafts SET status = 'published', updated_at = CURRENT_TIMESTAMP WHERE id = ? AND author_id = ? AND status = 'draft'", id, principal.userId());
+        if (publishedRows != 1) throw new NoSuchElementException("草稿不存在或无权发布");
 
         String slug = makeSlug(title + "-" + System.currentTimeMillis());
         KeyHolder keyHolder = new GeneratedKeyHolder();
@@ -85,9 +108,6 @@ public class DraftController {
         Number generatedId = keyHolder.getKey();
         if (generatedId == null) throw new IllegalStateException("文章发布失败");
 
-        int updatedRows = jdbcTemplate.update("UPDATE drafts SET status = 'published', updated_at = CURRENT_TIMESTAMP WHERE id = ? AND author_id = ? AND status = 'draft'", id, principal.userId());
-        if (updatedRows != 1) throw new NoSuchElementException("草稿不存在或无权发布");
-
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("articleId", generatedId.longValue());
         result.put("slug", slug);
@@ -96,7 +116,7 @@ public class DraftController {
 
     private Map<String, Object> findOwned(long userId, long id) {
         List<Map<String, Object>> rows = jdbcTemplate.queryForList("SELECT id, title, summary, content, author_id, category_id, status, risk_info, created_at, updated_at FROM drafts WHERE id = ? AND author_id = ?", id, userId);
-        if (rows.isEmpty()) throw new IllegalArgumentException("草稿不存在或无权访问");
+        if (rows.isEmpty()) throw new NoSuchElementException("草稿不存在或无权访问");
         return toDraft(rows.getFirst());
     }
 
@@ -117,7 +137,6 @@ public class DraftController {
         return result;
     }
 
-    private long lastId() { return jdbcTemplate.queryForObject("SELECT LAST_INSERT_ID()", Long.class); }
     private String value(String value) { return value == null ? "" : value; }
     private String value(Object value) { return value == null ? "" : String.valueOf(value); }
     private String riskInfo(JsonNode value) { return value == null || value.isNull() ? "{}" : value.toString(); }

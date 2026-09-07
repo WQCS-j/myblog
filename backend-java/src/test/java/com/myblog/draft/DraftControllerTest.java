@@ -15,7 +15,9 @@ import java.util.NoSuchElementException;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class DraftControllerTest {
@@ -37,6 +39,15 @@ class DraftControllerTest {
         assertThatThrownBy(() -> controller.update(author, 12L, new DraftController.DraftRequest("Title", "", "Body", null, null)))
                 .isInstanceOf(NoSuchElementException.class)
                 .hasMessage("草稿不存在或无权修改");
+    }
+
+    @Test
+    void listSupportsLegacyCreatedAtOrdering() {
+        when(jdbcTemplate.queryForList(any(String.class), any(Object[].class))).thenReturn(List.of());
+
+        controller.list(author, "", "createdAt");
+
+        verify(jdbcTemplate).queryForList(contains("ORDER BY created_at DESC"), any(Object[].class));
     }
 
     @Test
