@@ -1,23 +1,51 @@
 # 折页 / Zheye
 
-一个面向个人写作者的全栈博客平台。首版包含 Vue 3 前台、阅读体验、留言互动、作者草稿工作台、小游戏和 Express + MySQL API，可继续扩展为生产部署版本。
+一个面向个人写作者的全栈博客平台。前端使用 Vue 3 + Vite，正式后端使用 Java 21 + Spring Boot + MySQL，支持文章浏览、用户认证、作者草稿、留言回复、私密内容和阅读数据分析。
 
 ## 技术栈
 
 - 前端：Vue 3、Vite、Vue Router、JavaScript、CSS、Markdown-it、highlight.js
-- 后端：Node.js、Express、JWT、bcryptjs、Zod、MySQL2
-- 部署：GitHub Pages 静态前端 + 任意支持 Node.js 的免费云主机 + MySQL
+- 后端：Java 21、Spring Boot 3、Spring Security、JWT、BCrypt、JdbcTemplate
+- 数据库：MySQL 8，结构位于 `database/schema.sql`，初始化数据位于 `database/seed.sql`
+- 部署：GitHub Pages 静态前端 + 支持 Java 的云主机 + MySQL
 
-## 快速开始
+## 目录
+
+- `frontend`：Vue 前端
+- `backend-java`：正式 Java/Spring Boot 后端
+- `backend-java`：唯一后端，Java/Spring Boot REST API
+- `database`：MySQL 表结构和种子脚本
+- `.github/workflows`：GitHub Pages 自动部署
+
+## 本地启动
+
+环境要求：Node.js 20+、Java 21、Maven 3.9+、MySQL 8+。
 
 ```bash
-npm run install:all
-copy frontend\.env.example frontend\.env
-copy backend\.env.example backend\.env
+npm install --prefix frontend
+copy backend-java\.env.example backend-java\.env
 npm run dev
 ```
 
-前端默认 `http://localhost:5173`，后端默认 `http://localhost:3000`。没有 MySQL 时，前台仍可使用内置本地内容；连接数据库后通过 `/api` 接入真实数据。
+上面的 `npm run dev` 启动前端，默认地址为 `http://localhost:5173`。另开一个终端启动 Java 后端：
+
+```bash
+mvn -f backend-java/pom.xml spring-boot:run
+```
+
+如果 Maven 没有加入 PATH，Windows 可以使用本机 Maven 的完整路径：
+
+```powershell
+D:\tools\apache-maven-3.9.16\bin\mvn.cmd -f backend-java\pom.xml spring-boot:run
+```
+
+也可以尝试同时启动：
+
+```bash
+npm run dev:all
+```
+
+Java API 默认运行在 `http://localhost:3000`，接口前缀为 `/api`。
 
 ## 数据库
 
@@ -26,33 +54,62 @@ mysql -u root -p < database/schema.sql
 mysql -u root -p < database/seed.sql
 ```
 
-请在 `backend/.env` 中配置 `DB_HOST`、`DB_PORT`、`DB_NAME`、`DB_USER`、`DB_PASSWORD` 和随机 `JWT_SECRET`。生产环境只通过环境变量注入密钥，不提交 `.env`。备份：`mysqldump -u root -p myblog > backup.sql`；恢复：`mysql -u root -p myblog < backup.sql`。
+在 `backend-java/.env` 或云主机环境变量中配置：
 
-## 已落地的用例
-
-前台已落地首页浏览、文章列表/详情、Markdown 与代码高亮、归档筛选、关键词筛选、阅读进度、主题切换、阅读字号、留言发布、About、小游戏、响应式导航和 Hash 路由。后台已落地作者权限入口、新建草稿、编辑、保存状态、删除和基础风险提示。后端已落地统一响应格式、注册、登录、JWT 当前用户、文章列表/详情、参数化查询、CORS、限流和 MySQL 表结构，`schema.sql` 覆盖用户、文章、草稿、标签、留言回复、私密内容、个人资料、时间线、兴趣、友链、阅读统计、热力记录、找回密码记录和登录日志。
-
-其余接口按同样的 controller/service/routes 边界继续补充即可，数据库字段已经预留。当前演示登录中输入账号 `author` 可进入作者后台；真实环境应使用 seed 中的 bcrypt 密码或重新初始化作者密码。
-
-## GitHub Pages
-
-仓库启用 Pages 的 GitHub Actions 部署，工作流位于 `.github/workflows/deploy-frontend.yml`，前端使用 Hash 路由避免刷新 404。部署前将仓库 Pages 设置为 GitHub Actions，并在构建环境配置 `VITE_API_BASE_URL`。
-
-## 后端部署
-
-在云主机上安装 Node.js 与 MySQL，上传 `backend` 和 `database`，导入 SQL，设置环境变量后运行：
-
-```bash
-npm install --omit=dev
-npm start
+```text
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=myblog
+DB_USER=root
+DB_PASSWORD=你的数据库密码
+JWT_SECRET=至少32字符的随机密钥
+FRONTEND_URL=http://localhost:5173
+PORT=3000
 ```
 
-使用云主机自带的进程守护、systemd 或 PM2 保持服务重启后自动运行；HTTPS 建议由 Nginx/Caddy 终止，`FRONTEND_URL` 仅填写实际 GitHub Pages 域名。免费主机的 CPU、内存、休眠和数据库容量限制取决于供应商，生产使用前请确认其条款。
+不要提交真实 `.env`。数据库备份：
 
-## 验证
+```bash
+mysqldump -u root -p myblog > backup.sql
+mysql -u root -p myblog < backup.sql
+```
+
+## 已实现的 Java API
+
+- 认证：注册、登录、退出、当前用户、修改密码、JWT、BCrypt
+- 文章：列表、详情、搜索、分类、标签、归档
+- 作者后台：草稿列表、新建、详情、编辑、删除、发布
+- 互动：留言、回复、回复查看、最新回复
+- 个人内容：资料、时间线、兴趣、友情链接、私密内容验证
+- 阅读数据：阅读记录、作者/管理员阅读热力统计
+- 安全：CORS、参数化 SQL、角色权限、草稿归属校验、统一错误响应
+
+没有预置他人文章，`seed.sql` 默认不写入演示文章、留言和草稿。作者可以从后台创建自己的第一篇文章。
+
+## 构建和测试
 
 ```bash
 npm run build
+mvn -f backend-java/pom.xml clean package
+mvn -f backend-java/pom.xml test
 ```
 
-API 健康检查：`GET /api/health`。核心页面无需登录可直接访问；作者后台会校验本地角色状态，后端接口使用 JWT 和角色中间件保护。网络、空数据和无权限状态均有前端提示或空状态呈现。
+生产启动：
+
+```bash
+java -jar backend-java/target/myblog-backend-java-1.0.0.jar
+```
+
+## GitHub Pages
+
+工作流位于 `.github/workflows/deploy-frontend.yml`。仓库 Pages 设置选择 GitHub Actions，前端使用 Hash 路由避免刷新 404。部署时配置 `VITE_API_BASE_URL`，例如：
+
+```text
+https://你的后端域名/api
+```
+
+后端的 `FRONTEND_URL` 必须填写实际 GitHub Pages 来源，用于 CORS。云主机需要配置 Java 21、MySQL、HTTPS 和进程守护；后端不依赖个人电脑持续开机。
+
+## 迁移说明
+
+当前正式后端只有 `backend-java`。旧 Node.js 后端目录已删除，部署、开发和 README 均以 Java/Spring Boot 为准。
