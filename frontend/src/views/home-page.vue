@@ -11,7 +11,7 @@ const articles = ref([])
 const totalArticles = ref(0)
 const loadingArticles = ref(true)
 const articleStatus = ref('')
-const technologyTags = ['Vue 3', 'JavaScript', 'Node.js', 'Express', 'MySQL', 'Git']
+const technologyTags = ['Vue 3', 'Java', 'Spring Boot', 'MySQL', 'Git', 'JWT']
 const articleCountLabel = computed(() => `${String(totalArticles.value).padStart(2, '0')} ARTICLES`)
 
 async function loadLatestArticles() {

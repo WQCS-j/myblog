@@ -147,7 +147,8 @@ onMounted(() => {
     </div>
 
     <div class="studio-layout">
-      <aside class="studio-nav">
+       <aside class="studio-nav">
+        <RouterLink to="/studio/content"><FilePenLine :size="16" /> Content</RouterLink>
         <a class="active"><LayoutDashboard :size="16" /> 概览</a>
         <a><FilePenLine :size="16" /> 草稿箱 <b>{{ drafts.length }}</b></a>
         <RouterLink to="/analytics"><BarChart3 :size="16" /> 数据分析</RouterLink>

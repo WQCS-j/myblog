@@ -49,3 +49,15 @@ export async function createDraft() { return requestApi('/drafts', { method: 'PO
 export async function updateDraft(id, draft) { return requestApi(`/drafts/${id}`, { method: 'PUT', body: JSON.stringify(draft) }) }
 export async function deleteDraft(id) { return requestApi(`/drafts/${id}`, { method: 'DELETE' }) }
 export async function publishDraft(id) { return requestApi(`/drafts/${id}/publish`, { method: 'POST' }) }
+export async function updateProfile(profile) { return requestApi('/profile', { method: 'PUT', body: JSON.stringify(profile) }) }
+export async function createTimelineItem(item) { return requestApi('/timeline', { method: 'POST', body: JSON.stringify(item) }) }
+export async function updateTimelineItem(id, item) { return requestApi(`/timeline/${id}`, { method: 'PUT', body: JSON.stringify(item) }) }
+export async function deleteTimelineItem(id) { return requestApi(`/timeline/${id}`, { method: 'DELETE' }) }
+export async function createInterest(item) { return requestApi('/interests', { method: 'POST', body: JSON.stringify(item) }) }
+export async function updateInterest(id, item) { return requestApi(`/interests/${id}`, { method: 'PUT', body: JSON.stringify(item) }) }
+export async function deleteInterest(id) { return requestApi(`/interests/${id}`, { method: 'DELETE' }) }
+export async function createFriendLink(item) { return requestApi('/friend-links', { method: 'POST', body: JSON.stringify(item) }) }
+export async function updateFriendLink(id, item) { return requestApi(`/friend-links/${id}`, { method: 'PUT', body: JSON.stringify(item) }) }
+export async function deleteFriendLink(id) { return requestApi(`/friend-links/${id}`, { method: 'DELETE' }) }
+export async function getPrivateSettings() { return requestApi('/private-content/settings') }
+export async function updatePrivateSettings(settings) { return requestApi('/private-content/settings', { method: 'PUT', body: JSON.stringify(settings) }) }
